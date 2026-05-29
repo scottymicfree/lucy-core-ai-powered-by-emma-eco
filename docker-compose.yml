@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  emma-core:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgres://emma:aegis@postgres:5432/emma_ledger
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: emma
+      POSTGRES_PASSWORD: aegis
+      POSTGRES_DB: emma_ledger
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U emma"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  aegis-sandbox:
+    build:
+      context: .
+      dockerfile: Dockerfile.sandbox
+    privileged: true
+    devices:
+      - "/dev/kvm:/dev/kvm"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    command: ["/bin/bash", "-c", "echo 'Aegis Pandora Sandbox Ready' && tail -f /dev/null"]
+
+volumes:
+  pgdata:
+  redisdata:

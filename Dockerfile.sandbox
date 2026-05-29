@@ -1,0 +1,15 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    curl iproute2 iptables bridge-utils qemu-kvm \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -Lo firecracker https://github.com/firecracker-microvm/firecracker/releases/download/v1.7.0/firecracker-v1.7.0-x86_64 \
+    && chmod +x firecracker \
+    && mv firecracker /usr/local/bin/
+
+WORKDIR /opt/emma/sandbox
+COPY genesis_seed/fcnet_setup.sh ./
+RUN chmod +x fcnet_setup.sh
+
+CMD ["/bin/bash"]
